@@ -30,7 +30,7 @@ jobs:
       - name: Установить Pillow
         run: pip install pillow
 
-      - name: Логотип H, фикс Loom/Gradle и ребрендинг в Heart Visuals
+      - name: Логотип H, фикс Loom/Gradle/FabricAPI и ребрендинг
         shell: python
         run: |
           from pathlib import Path
@@ -50,7 +50,29 @@ jobs:
           if gw.is_file():
               gw.write_text(gw.read_text(encoding='utf-8').replace('9.6.1', '9.8.0'), encoding='utf-8')
 
-          # 2. Генерация кристального чёрно-белого логотипа H с обводкой
+          # 2. Фикс подключения fabric-api в versions/native.gradle для Loom 1.19.3
+          ng = ROOT / 'versions/native.gradle'
+          if ng.is_file():
+              nt = ng.read_text(encoding='utf-8')
+              old_block = """        } else {
+            def archive = files(file('libs/' + dependency.file)).builtBy(acquireNativeDependencies)
+            modImplementation archive
+            include archive
+        }"""
+              new_block = """        } else if (dependency.project == 'fabric-api') {
+            modImplementation "net.fabricmc.fabric-api:fabric-api:${dependency.version}"
+            def archive = files(file('libs/' + dependency.file)).builtBy(acquireNativeDependencies)
+            include archive
+        } else {
+            def archive = files(file('libs/' + dependency.file)).builtBy(acquireNativeDependencies)
+            modImplementation archive
+            include archive
+        }"""
+              if old_block in nt:
+                  ng.write_text(nt.replace(old_block, new_block), encoding='utf-8')
+                  print("Patched versions/native.gradle for fabric-api")
+
+          # 3. Генерация кристального чёрно-белого логотипа H с обводкой
           def make_h_logo(size=512):
               img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
               draw = ImageDraw.Draw(img)
@@ -97,14 +119,14 @@ jobs:
                   make_h_logo(max(w, h, 128)).resize((w, h), Image.Resampling.LANCZOS).save(png)
                   print("Replaced logo:", png)
 
-          # 3. Меняем имя итогового JAR в gradle.properties
+          # 4. Меняем имя итогового JAR в gradle.properties
           gp = ROOT / 'gradle.properties'
           if gp.is_file():
               text = gp.read_text(encoding='utf-8')
               text = re.sub(r'(?m)^archives_base_name=.*$', 'archives_base_name=HeartVisuals', text)
               gp.write_text(text, encoding='utf-8')
 
-          # 4. Меняем отображаемое название в ресурсах (lang, fabric.mod.json)
+          # 5. Меняем отображаемое название в ресурсах (lang, fabric.mod.json)
           for res_root in [ROOT / 'src/main/resources', ROOT / 'versions']:
               if not res_root.exists():
                   continue
@@ -115,7 +137,7 @@ jobs:
                       if new != old:
                           path.write_text(new, encoding='utf-8')
 
-          # 5. Меняем видимые надписи в кавычках внутри src/
+          # 6. Меняем видимые надписи в кавычках внутри src/
           def replace_in_quotes(match):
               s = match.group(0)
               if 'https://' in s or 'ToolVisualsMedia.exe' in s:
@@ -131,11 +153,11 @@ jobs:
       - name: Загрузить зависимости
         run: python build-tools/dependencies.py
 
-      - name: Собрать JAR для Legacy Launcher (1.21.11)
-        run: .\gradlew.bat :minecraft12111:build "-Porg.gradle.java.installations.fromEnv=JAVA_HOME_21_X64,JAVA_HOME_25_X64"
+      - name: Собрать JAR для Legacy Launcher (1.21.4)
+        run: .\gradlew.bat :minecraft1214:build "-Porg.gradle.java.installations.fromEnv=JAVA_HOME_21_X64,JAVA_HOME_25_X64"
 
       - name: Выгрузить готовый файл
         uses: actions/upload-artifact@v4
         with:
-          name: HeartVisuals-1.21.11-Fabric
+          name: HeartVisuals-1.21.4-Fabric
           path: "**/build/libs/*.jar"
