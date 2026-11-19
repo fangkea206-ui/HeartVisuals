@@ -39,11 +39,21 @@ jobs:
 
           ROOT = Path('.').resolve()
 
-          # 1. Отключаем :minecraft12111 в settings.gradle, чтобы собирать 1.21.4 на родном Loom 1.17.21
+          # 1. Аккуратно отключаем только :minecraft12111 в settings.gradle, оставляя :minecraft1214
           sg = ROOT / 'settings.gradle'
           if sg.is_file():
-              lines = sg.read_text(encoding='utf-8').splitlines()
-              sg.write_text('\n'.join(l for l in lines if '12111' not in l) + '\n', encoding='utf-8')
+              out_lines = []
+              for l in sg.read_text(encoding='utf-8').splitlines():
+                  if '12111' in l:
+                      if '1214' in l:
+                          l = re.sub(r"""['"]:?minecraft12111['"]\s*,\s*""", "", l)
+                          l = re.sub(r""",?\s*['"]:?minecraft12111['"]""", "", l)
+                          out_lines.append(l)
+                      else:
+                          continue
+                  else:
+                      out_lines.append(l)
+              sg.write_text('\n'.join(out_lines) + '\n', encoding='utf-8')
 
           # 2. Генерация кристального чёрно-белого логотипа H с обводкой
           def make_h_logo(size=512):
