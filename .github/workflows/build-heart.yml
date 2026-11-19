@@ -30,7 +30,7 @@ jobs:
       - name: Установить Pillow
         run: pip install pillow
 
-      - name: Логотип H, фикс Loom/Gradle и ребрендинг в Heart Visuals
+      - name: Логотип H, изоляция 1.21.4 и ребрендинг в Heart Visuals
         shell: python
         run: |
           from pathlib import Path
@@ -39,16 +39,11 @@ jobs:
 
           ROOT = Path('.').resolve()
 
-          # 1. Обновляем Fabric Loom до 1.19.3 и Gradle до 9.8.0
-          for gf in [ROOT / 'build.gradle', ROOT / 'settings.gradle', ROOT / 'gradle.properties']:
-              if gf.is_file():
-                  txt = gf.read_text(encoding='utf-8')
-                  if '1.17.21' in txt:
-                      gf.write_text(txt.replace('1.17.21', '1.19.3'), encoding='utf-8')
-
-          gw = ROOT / 'gradle/wrapper/gradle-wrapper.properties'
-          if gw.is_file():
-              gw.write_text(gw.read_text(encoding='utf-8').replace('9.6.1', '9.8.0'), encoding='utf-8')
+          # 1. Отключаем :minecraft12111 в settings.gradle, чтобы собирать 1.21.4 на родном Loom 1.17.21
+          sg = ROOT / 'settings.gradle'
+          if sg.is_file():
+              lines = sg.read_text(encoding='utf-8').splitlines()
+              sg.write_text('\n'.join(l for l in lines if '12111' not in l) + '\n', encoding='utf-8')
 
           # 2. Генерация кристального чёрно-белого логотипа H с обводкой
           def make_h_logo(size=512):
@@ -128,8 +123,8 @@ jobs:
               if new != old:
                   java_file.write_text(new, encoding='utf-8')
 
-      - name: Загрузить зависимости
-        run: python build-tools/dependencies.py
+      - name: Загрузить зависимости (1.21.4)
+        run: python build-tools/dependencies.py --target 1.21.4
 
       - name: Собрать JAR для Legacy Launcher (1.21.4)
         run: .\gradlew.bat :minecraft1214:build "-Porg.gradle.java.installations.fromEnv=JAVA_HOME_21_X64,JAVA_HOME_25_X64"
