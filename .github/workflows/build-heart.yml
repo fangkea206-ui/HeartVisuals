@@ -54,22 +54,10 @@ jobs:
           ng = ROOT / 'versions/native.gradle'
           if ng.is_file():
               nt = ng.read_text(encoding='utf-8')
-              old_block = """        } else {
-            def archive = files(file('libs/' + dependency.file)).builtBy(acquireNativeDependencies)
-            modImplementation archive
-            include archive
-        }"""
-              new_block = """        } else if (dependency.project == 'fabric-api') {
-            modImplementation "net.fabricmc.fabric-api:fabric-api:${dependency.version}"
-            def archive = files(file('libs/' + dependency.file)).builtBy(acquireNativeDependencies)
-            include archive
-        } else {
-            def archive = files(file('libs/' + dependency.file)).builtBy(acquireNativeDependencies)
-            modImplementation archive
-            include archive
-        }"""
-              if old_block in nt:
-                  ng.write_text(nt.replace(old_block, new_block), encoding='utf-8')
+              old_line = "modImplementation archive"
+              new_line = 'if (dependency.project == "fabric-api") { modImplementation "net.fabricmc.fabric-api:fabric-api:${dependency.version}" } else { modImplementation archive }'
+              if old_line in nt:
+                  ng.write_text(nt.replace(old_line, new_line, 1), encoding='utf-8')
                   print("Patched versions/native.gradle for fabric-api")
 
           # 3. Генерация кристального чёрно-белого логотипа H с обводкой
