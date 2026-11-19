@@ -19,22 +19,22 @@ public final class UiPalette {
     public final int subtleBorder;
 
     public UiPalette(float light) {
-        panel = mix(0xfc111218, 0xfcf4f5fa, light);
-        hudPanel = mix(0xd912131b, 0xeef7f8fc, light);
-        raised = mix(0xff1b1c27, 0xffffffff, light);
-        hover = mix(0xff292938, 0xffeae5f6, light);
-        border = mix(0xff353747, 0xffc2c8d8, light);
-        subtleBorder = mix(0xff222431, 0xffe0e3ed, light);
-        text = mix(0xfff5f7ff, 0xff202b40, light);
-        muted = mix(0xffb1b5c9, 0xff515970, light);
-        faint = mix(0xff9198af, 0xff606a82, light);
-        accent = mix(0xff9e80f5, 0xff7650ce, light);
-        accentText = mix(0xffcbbaf8, 0xff5e389f, light);
-        track = mix(0xff414357, 0xffa3aec3, light);
-        field = mix(0xff0d0e15, 0xffe9ecf4, light);
-        inset = mix(0xff15161f, 0xffeceef6, light);
-        button = mix(0xff222431, 0xffe4e7f1, light);
-        selected = mix(0xff292438, 0xffe9e0fa, light);
+        panel = mix(0xf008080b, 0xf5f7f8fa, light);
+        hudPanel = mix(0xcc09090d, 0xebf5f7fa, light);
+        raised = mix(0xff131318, 0xffffffff, light);
+        hover = mix(0xff23232b, 0xffe8eaef, light);
+        border = mix(0x5cffffff, 0x40000000, light);
+        subtleBorder = mix(0x26ffffff, 0x1f000000, light);
+        text = mix(0xffffffff, 0xff09090c, light);
+        muted = mix(0xffb8bcc8, 0xff4a4e59, light);
+        faint = mix(0xff7e8390, 0xff767b87, light);
+        accent = mix(0xfff4f7ff, 0xff0d0d11, light);
+        accentText = mix(0xffffffff, 0xff000000, light);
+        track = mix(0xff2f3039, 0xffc6cad4, light);
+        field = mix(0xff050507, 0xffeff1f5, light);
+        inset = mix(0xff0e0e13, 0xffe9ecf2, light);
+        button = mix(0xff1a1a21, 0xffe2e5ec, light);
+        selected = mix(0x38ffffff, 0x26000000, light);
     }
 
     public static int mix(int from, int to, float amount) {
@@ -47,4 +47,4 @@ public final class UiPalette {
         }
         return result;
     }
-}
+        }
