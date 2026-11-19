@@ -30,7 +30,7 @@ jobs:
       - name: Установить Pillow
         run: pip install pillow
 
-      - name: Логотип H, фикс Loom/Gradle/FabricAPI и ребрендинг
+      - name: Логотип H, фикс Loom/Gradle/FabricAPI/ClothConfig и ребрендинг
         shell: python
         run: |
           from pathlib import Path
@@ -50,15 +50,26 @@ jobs:
           if gw.is_file():
               gw.write_text(gw.read_text(encoding='utf-8').replace('9.6.1', '9.8.0'), encoding='utf-8')
 
-          # 2. Фикс подключения fabric-api в versions/native.gradle для Loom 1.19.3
+          # 2. Фикс подключения fabric-api и cloth-config в versions/native.gradle
           ng = ROOT / 'versions/native.gradle'
           if ng.is_file():
               nt = ng.read_text(encoding='utf-8')
+              if 'maven.shedaniel.me' not in nt:
+                  nt = nt.replace(
+                      "maven { url = 'https://maven.fabricmc.net/' }",
+                      "maven { url = 'https://maven.fabricmc.net/' }\n    maven { url = 'https://maven.shedaniel.me/' }"
+                  )
               old_line = "modImplementation archive"
               new_line = 'if (dependency.project == "fabric-api") { modImplementation "net.fabricmc.fabric-api:fabric-api:${dependency.version}" } else { modImplementation archive }'
               if old_line in nt:
-                  ng.write_text(nt.replace(old_line, new_line, 1), encoding='utf-8')
-                  print("Patched versions/native.gradle for fabric-api")
+                  nt = nt.replace(old_line, new_line, 1)
+              if 'cloth-config-fabric' not in nt:
+                  nt = nt.replace(
+                      'modRuntimeOnly protocolArchive',
+                      'modCompileOnly("me.shedaniel.cloth:cloth-config-fabric:17.0.144") { exclude(group: "net.fabricmc.fabric-api") }\n    modRuntimeOnly protocolArchive'
+                  )
+              ng.write_text(nt, encoding='utf-8')
+              print("Patched versions/native.gradle")
 
           # 3. Генерация кристального чёрно-белого логотипа H с обводкой
           def make_h_logo(size=512):
