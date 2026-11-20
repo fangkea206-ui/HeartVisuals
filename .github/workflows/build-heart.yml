@@ -34,6 +34,7 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
+          import json
           import re
           from PIL import Image, ImageDraw
 
@@ -127,12 +128,19 @@ jobs:
               text = re.sub(r'(?m)^archives_base_name=.*$', 'archives_base_name=HeartVisuals', text)
               gp.write_text(text, encoding='utf-8')
 
-          # 5. Меняем отображаемое название в ресурсах (lang, fabric.mod.json)
+          # 5. Безопасно меняем название в fabric.mod.json (не трогая entrypoints) и в lang-файлах
           for res_root in [ROOT / 'src/main/resources', ROOT / 'versions']:
               if not res_root.exists():
                   continue
               for path in res_root.rglob('*.json'):
-                  if path.name == 'fabric.mod.json' or 'lang' in path.parts:
+                  if path.name == 'fabric.mod.json':
+                      data = json.loads(path.read_text(encoding='utf-8'))
+                      if isinstance(data.get('name'), str):
+                          data['name'] = data['name'].replace('ToolVisuals', 'Heart Visuals').replace('Tool Visuals', 'Heart Visuals')
+                      if isinstance(data.get('description'), str):
+                          data['description'] = data['description'].replace('ToolVisuals', 'Heart Visuals').replace('Tool Visuals', 'Heart Visuals')
+                      path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+                  elif 'lang' in path.parts:
                       old = path.read_text(encoding='utf-8')
                       new = old.replace('ToolVisuals', 'Heart Visuals').replace('Tool Visuals', 'Heart Visuals')
                       if new != old:
@@ -157,7 +165,7 @@ jobs:
       - name: Собрать JAR для Legacy Launcher (1.21.4)
         run: .\gradlew.bat :minecraft1214:build "-Porg.gradle.java.installations.fromEnv=JAVA_HOME_21_X64,JAVA_HOME_25_X64"
 
-      - name: Собрать все нужные моды в одну папку
+      - name: Собрать все нужные моды в одну папку (без дублей)
         shell: python
         run: |
           from pathlib import Path
@@ -172,22 +180,27 @@ jobs:
               if not f.name.endswith('-sources.jar'):
                   shutil.copy2(f, out / f.name)
 
-          # 2. Зависимости из versions/1.21.4/libs (voicechat, appleskin, fabric-api и др.)
+          # 2. Зависимости из versions/1.21.4/libs (без remapped)
           libs_dir = ROOT / 'versions/1.21.4/libs'
           if libs_dir.exists():
               for f in libs_dir.glob('*.jar'):
-                  shutil.copy2(f, out / f.name)
+                  if not f.name.lower().startswith('remapped'):
+                      shutil.copy2(f, out / f.name)
 
-          # 3. ToolVisualsImageCodecs
+          # 3. Один файл ImageCodecs (сразу переименованный в HeartVisuals)
           for f in ROOT.rglob('ToolVisualsImageCodecs-*.jar'):
-              shutil.copy2(f, out / f.name)
+              if '.gradle' not in f.parts and 'remapped' not in f.name.lower():
+                  shutil.copy2(f, out / 'HeartVisualsImageCodecs.jar')
+                  break
 
-          # 4. Кастомный ViaFabricPlus (не compile-версия)
+          # 4. Один файл ViaFabricPlus (не compile и не remapped)
           for f in ROOT.rglob('*4.0.5-BACKPORT+toolvisuals*.jar'):
-              if 'compile' not in f.name.lower():
-                  shutil.copy2(f, out / f.name)
+              low = f.name.lower()
+              if '.gradle' not in f.parts and 'compile' not in low and 'remapped' not in low:
+                  shutil.copy2(f, out / 'HeartVisualsProtocols.jar')
+                  break
 
-          print("Ready mods:", [p.name for p in out.iterdir()])
+          print("Ready mods:", sorted(p.name for p in out.iterdir()))
 
       - name: Выгрузить готовый файл
         uses: actions/upload-artifact@v4
