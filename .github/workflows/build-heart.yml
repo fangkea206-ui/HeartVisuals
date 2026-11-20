@@ -157,8 +157,40 @@ jobs:
       - name: Собрать JAR для Legacy Launcher (1.21.4)
         run: .\gradlew.bat :minecraft1214:build "-Porg.gradle.java.installations.fromEnv=JAVA_HOME_21_X64,JAVA_HOME_25_X64"
 
+      - name: Собрать все нужные моды в одну папку
+        shell: python
+        run: |
+          from pathlib import Path
+          import shutil
+
+          ROOT = Path('.').resolve()
+          out = ROOT / 'ready_mods'
+          out.mkdir(exist_ok=True)
+
+          # 1. Сам HeartVisuals (без -sources)
+          for f in (ROOT / 'build/libs').glob('*.jar'):
+              if not f.name.endswith('-sources.jar'):
+                  shutil.copy2(f, out / f.name)
+
+          # 2. Зависимости из versions/1.21.4/libs (voicechat, appleskin, fabric-api и др.)
+          libs_dir = ROOT / 'versions/1.21.4/libs'
+          if libs_dir.exists():
+              for f in libs_dir.glob('*.jar'):
+                  shutil.copy2(f, out / f.name)
+
+          # 3. ToolVisualsImageCodecs
+          for f in ROOT.rglob('ToolVisualsImageCodecs-*.jar'):
+              shutil.copy2(f, out / f.name)
+
+          # 4. Кастомный ViaFabricPlus (не compile-версия)
+          for f in ROOT.rglob('*4.0.5-BACKPORT+toolvisuals*.jar'):
+              if 'compile' not in f.name.lower():
+                  shutil.copy2(f, out / f.name)
+
+          print("Ready mods:", [p.name for p in out.iterdir()])
+
       - name: Выгрузить готовый файл
         uses: actions/upload-artifact@v4
         with:
-          name: HeartVisuals-1.21.4-Fabric
-          path: "**/build/libs/*.jar"
+          name: HeartVisuals-1.21.4-All-Mods
+          path: ready_mods/*.jar
